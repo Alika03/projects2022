@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"back-end/auth"
+	"back-end/models"
 	"context"
 )
 
@@ -14,6 +15,16 @@ func NewAuthUseCase(repo auth.UserRepository) *UseCase {
 }
 
 func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
+	var model = &models.User{
+		Id:       "",
+		Username: username,
+		Password: password,
+	}
+
+	if err := u.repo.CreateUser(ctx, model); err != nil {
+		return err
+	}
+
 	return nil
 }
 
