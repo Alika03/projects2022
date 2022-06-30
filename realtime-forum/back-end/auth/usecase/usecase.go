@@ -3,7 +3,9 @@ package usecase
 import (
 	"back-end/auth"
 	"back-end/models"
+	"back-end/utils"
 	"context"
+	"github.com/dgrijalva/jwt-go/v4"
 )
 
 type UseCase struct {
@@ -16,7 +18,7 @@ func NewAuthUseCase(repo auth.UserRepository) *UseCase {
 
 func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
 	var model = &models.User{
-		Id:       "",
+		Id:       utils.GenerateUuid().String(),
 		Username: username,
 		Password: password,
 	}
@@ -25,6 +27,15 @@ func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
 		return err
 	}
 
+	claimAccess := &jwt.StandardClaims{
+		Audience:  model.Id,
+		ExpiresAt: nil,
+		ID:        "",
+		IssuedAt:  nil,
+		Issuer:    "",
+		NotBefore: nil,
+		Subject:   "",
+	}
 	return nil
 }
 

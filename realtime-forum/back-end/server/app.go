@@ -5,7 +5,10 @@ import (
 	"back-end/auth/delivery/http/registerRoute"
 	"back-end/auth/repository/postgressDb"
 	"back-end/auth/usecase"
+	"back-end/config"
 	"database/sql"
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -47,5 +50,21 @@ func (a *App) Run() error {
 }
 
 func initDb() *sql.DB {
-	return nil
+	dns := fmt.Sprintf("postgres://postgres:%v@%v:%v/%v?sslmode=disable",
+		config.GetConfig().Db.Password,
+		config.GetConfig().Db.Host,
+		config.GetConfig().Db.Port,
+		config.GetConfig().Db.DbName,
+	)
+
+	db, err := sql.Open("postgres", dns)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	if err = db.Ping(); err != nil {
+		log.Panic(err)
+	}
+
+	return db
 }
