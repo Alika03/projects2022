@@ -16,9 +16,9 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (u *UserRepository) CreateUser(ctx context.Context, model *models.User) error {
-	query := "insert into users_user (id, username, password) values($1, $2, $3)"
+	query := "insert into users_user (id, username, hash_password) values($1, $2, $3)"
 
-	_, err := u.db.ExecContext(ctx, query, model.Id, model.Username, model.Password)
+	_, err := u.db.ExecContext(ctx, query, model.Id, model.Username, model.HashPassword)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (u *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 
 	row := u.db.QueryRowContext(ctx, query, username)
 
-	err := row.Scan(&model.Id, &model.Username, &model.Password)
+	err := row.Scan(&model.Id, &model.Username, &model.HashPassword)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, errors.New("no such username")

@@ -2,10 +2,13 @@ package usecase
 
 import (
 	"back-end/auth"
+	"back-end/config"
 	"back-end/models"
 	"back-end/utils"
 	"context"
-	"github.com/dgrijalva/jwt-go/v4"
+	"errors"
+
+	"strconv"
 )
 
 type UseCase struct {
@@ -23,23 +26,43 @@ func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
 		Password: password,
 	}
 
-	if err := u.repo.CreateUser(ctx, model); err != nil {
+	memory, _ := strconv.Atoi(config.GetConfig().HashParams.Memory)
+	parallelism, _ := strconv.Atoi(config.GetConfig().HashParams.Parallelism)
+	iterations, _ := strconv.Atoi(config.GetConfig().HashParams.Iterations)
+	saltLength, _ := strconv.Atoi(config.GetConfig().HashParams.SaltLength)
+	keyLength, _ := strconv.Atoi(config.GetConfig().HashParams.KeyLength)
+	hashModel := utils.HashParams{
+		Memory:      uint32(memory),
+		Iterations:  uint32(iterations),
+		Parallelism: uint8(parallelism),
+		SaltLength:  uint32(saltLength),
+		KeyLength:   uint32(keyLength),
+	}
+
+	hashPassword, err := hashModel.GenerateHashPassword(model.Password)
+	if err != nil {
 		return err
 	}
 
-	claimAccess := &jwt.StandardClaims{
-		Audience:  model.Id,
-		ExpiresAt: nil,
-		ID:        "",
-		IssuedAt:  nil,
-		Issuer:    "",
-		NotBefore: nil,
-		Subject:   "",
-	}
-	return nil
+	model.HashPassword = hashPassword
+
+	return u.repo.CreateUser(ctx, model)
 }
 
 func (u *UseCase) SignIn(ctx context.Context, username, password string) error {
+	model, err := u.repo.GetByUsername(ctx, username)
+	if err != nil {
+		return err
+	}
+
+	isMatched, err := utils.ComparePasswordHash(password, model.HashPassword)
+	if err != nil {
+		return err
+	}
+	if !isMatched {
+		return errors.New("incorrect password")
+	}
+
 	return nil
 }
 
