@@ -6,17 +6,27 @@ import (
 	"back-end/models"
 	"back-end/utils"
 	"context"
-	"errors"
-
+	"crypto/rsa"
+	"database/sql"
+	"github.com/dgrijalva/jwt-go/v4"
 	"strconv"
+	"time"
 )
 
+const tokenType = "Bearer"
+
 type UseCase struct {
-	repo auth.UserRepository
+	userRepo auth.UserRepository
+	jwtRepo  auth.JwtRepository
+	key      *rsa.PrivateKey
 }
 
-func NewAuthUseCase(repo auth.UserRepository) *UseCase {
-	return &UseCase{repo: repo}
+func NewAuthUseCase(userRepo auth.UserRepository, jwtRepo auth.JwtRepository, key *rsa.PrivateKey) *UseCase {
+	return &UseCase{
+		userRepo: userRepo,
+		jwtRepo:  jwtRepo,
+		key:      key,
+	}
 }
 
 func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
@@ -31,13 +41,8 @@ func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
 	iterations, _ := strconv.Atoi(config.GetConfig().HashParams.Iterations)
 	saltLength, _ := strconv.Atoi(config.GetConfig().HashParams.SaltLength)
 	keyLength, _ := strconv.Atoi(config.GetConfig().HashParams.KeyLength)
-	hashModel := utils.HashParams{
-		Memory:      uint32(memory),
-		Iterations:  uint32(iterations),
-		Parallelism: uint8(parallelism),
-		SaltLength:  uint32(saltLength),
-		KeyLength:   uint32(keyLength),
-	}
+
+	hashModel := utils.NewHashPassword(uint32(memory), uint32(iterations), uint8(parallelism), uint32(saltLength), uint32(keyLength))
 
 	hashPassword, err := hashModel.GenerateHashPassword(model.Password)
 	if err != nil {
@@ -46,24 +51,69 @@ func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
 
 	model.HashPassword = hashPassword
 
-	return u.repo.CreateUser(ctx, model)
+	return u.userRepo.CreateUser(ctx, model)
 }
 
-func (u *UseCase) SignIn(ctx context.Context, username, password string) error {
-	model, err := u.repo.GetByUsername(ctx, username)
+func (u *UseCase) SignIn(ctx context.Context, username, password string) (*models.Tokens, error) {
+	userModel, err := u.userRepo.GetByUsername(ctx, username)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	isMatched, err := utils.ComparePasswordHash(password, model.HashPassword)
+	isMatched, err := utils.ComparePasswordHash(password, userModel.HashPassword)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !isMatched {
-		return errors.New("incorrect password")
+		return nil, auth.ErrInvalidPassword
 	}
 
-	return nil
+	accessTokenModel := &models.AccessToken{
+		Id:        utils.GenerateUuid().String(),
+		UserId:    userModel.Id,
+		ExpiredAt: time.Now().Add(time.Minute),
+	}
+
+	accessClaims := &jwt.StandardClaims{
+		ExpiresAt: &jwt.Time{Time: accessTokenModel.ExpiredAt},
+		Issuer:    accessTokenModel.UserId,
+		ID:        accessTokenModel.Id,
+	}
+	accessToken, err := utils.NewJwt(u.key, accessClaims).CreateToken()
+	if err != nil {
+		return nil, err
+	}
+
+	refreshTokenModel := &models.RefreshToken{
+		Id:            utils.GenerateUuid().String(),
+		AccessTokenId: accessTokenModel.Id,
+		ExpiredAt:     time.Now().Add(time.Minute),
+	}
+
+	refreshClaims := &jwt.StandardClaims{
+		ExpiresAt: &jwt.Time{Time: refreshTokenModel.ExpiredAt},
+		Issuer:    accessTokenModel.UserId,
+		ID:        refreshTokenModel.Id,
+	}
+
+	refreshToken, err := utils.NewJwt(u.key, refreshClaims).CreateToken()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = u.jwtRepo.AddAccessToken(ctx, &sql.Tx{}, accessTokenModel); err != nil {
+		return nil, err
+	}
+
+	if err = u.jwtRepo.AddRefreshToken(ctx, &sql.Tx{}, refreshTokenModel); err != nil {
+		return nil, err
+	}
+
+	return &models.Tokens{
+		TokenType:    tokenType,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 func (u *UseCase) ParseToken(ctx context.Context, accessToken string) error {

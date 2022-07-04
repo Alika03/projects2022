@@ -8,6 +8,7 @@ import (
 	"back-end/config"
 	"database/sql"
 	"fmt"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
 	"net/http"
 	"time"
@@ -21,11 +22,15 @@ type App struct {
 
 func NewApp() *App {
 	db := initDb()
+	privateKey := config.GetKeys().Private
 
 	return &App{
 		httpServer: nil,
 		authUC: usecase.NewAuthUseCase(
-			postgressDb.NewUserRepository(db)),
+			postgressDb.NewUserRepository(db),
+			postgressDb.NewJwtRepository(db),
+			privateKey,
+		),
 	}
 }
 
@@ -42,6 +47,7 @@ func (a *App) Run() error {
 		MaxHeaderBytes: http.DefaultMaxHeaderBytes,
 	}
 
+	log.Println("server launched: ", a.httpServer.Addr)
 	if err := a.httpServer.ListenAndServe(); err != nil {
 		return err
 	}
@@ -50,14 +56,15 @@ func (a *App) Run() error {
 }
 
 func initDb() *sql.DB {
-	dns := fmt.Sprintf("postgres://postgres:%v@%v:%v/%v?sslmode=disable",
+	dns := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		config.GetConfig().Db.User,
 		config.GetConfig().Db.Password,
 		config.GetConfig().Db.Host,
 		config.GetConfig().Db.Port,
 		config.GetConfig().Db.DbName,
 	)
 
-	db, err := sql.Open("postgres", dns)
+	db, err := sql.Open("pgx", dns)
 	if err != nil {
 		log.Panic(err)
 	}

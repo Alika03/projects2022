@@ -9,6 +9,6 @@ import (
 func RegisterAuthHTTPRoute(mux *http.ServeMux, useCase auth.UseCase) {
 	h := handler.NewHandler(useCase)
 
-	mux.HandleFunc("auth/sign-up", h.SignUp)
-	mux.HandleFunc("auth/sign-up", h.SignIn)
+	mux.HandleFunc("/auth/sign-up", h.SignUp)
+	mux.HandleFunc("/auth/sign-in", h.SignIn)
 }

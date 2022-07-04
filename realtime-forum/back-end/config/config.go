@@ -1,33 +1,45 @@
 package config
 
-import "sync"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"sync"
+)
 
 var onceConfig sync.Once
 var config *Config
 
 type Config struct {
 	Server struct {
-		Port string `env:"SERVER_PORT"`
-	}
+		Port string `json:"port"`
+	} `json:"server"`
 	Db struct {
-		Host     string `env:"DB_HOST"`
-		Port     string `env:"DB_PORT"`
-		DbName   string `env:"DB_NAME"`
-		User     string `env:"DB_USER"`
-		Password string `env:"DB_PASSWORD"`
-	}
+		Host     string `json:"host"`
+		Port     string `json:"port"`
+		DbName   string `json:"name"`
+		User     string `json:"username"`
+		Password string `json:"password"`
+	} `json:"db"`
 	HashParams struct {
-		Memory      string `env:"HASH_MEMORY"`
-		Iterations  string `env:"HASH_ITERATIONS"`
-		Parallelism string `env:"HASH_PARALLELISM"`
-		SaltLength  string `env:"HASH_SALT_LENGTH"`
-		KeyLength   string `env:"HASH_KEY_LENGTH"`
-	}
+		Memory      string `json:"memory"`
+		Iterations  string `json:"iterations"`
+		Parallelism string `json:"parallelism"`
+		SaltLength  string `json:"salt_length"`
+		KeyLength   string `json:"key_length"`
+	} `json:"hash_params"`
 }
 
 func GetConfig() *Config {
 	onceConfig.Do(func() {
+		dataBytes, err := ioutil.ReadFile("../../tsconfig.json")
+		if err != nil {
+			panic(err)
+		}
+		config = &Config{}
 
+		if err = json.Unmarshal(dataBytes, config); err != nil {
+			panic(err)
+		}
 	})
 
 	return config

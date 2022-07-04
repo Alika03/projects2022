@@ -1,0 +1,19 @@
+{
+  "server": {
+    "port": "8080"
+  },
+  "db": {
+    "host": "localhost",
+    "port": "5433",
+    "name": "app",
+    "username": "app",
+    "password": "secret"
+  },
+  "hash_params": {
+    "memory": "1024",
+    "iterations": "1",
+    "parallelism": "1",
+    "salt_length": "16",
+    "key_length": "32"
+  }
+}
