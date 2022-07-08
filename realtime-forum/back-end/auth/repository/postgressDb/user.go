@@ -43,3 +43,21 @@ func (u *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 		return model, nil
 	}
 }
+
+func (u *UserRepository) GetById(ctx context.Context, id string) (*models.User, error) {
+	query := "select * from users_user where id = $1"
+
+	var model = &models.User{}
+
+	row := u.db.QueryRowContext(ctx, query, id)
+
+	err := row.Scan(&model.Id, &model.Username, &model.HashPassword)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, errors.New("no such username")
+	case err != nil:
+		return nil, err
+	default:
+		return model, nil
+	}
+}

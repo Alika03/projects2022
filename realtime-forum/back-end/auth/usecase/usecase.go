@@ -116,6 +116,25 @@ func (u *UseCase) SignIn(ctx context.Context, username, password string) (*model
 	}, nil
 }
 
-func (u *UseCase) ParseToken(ctx context.Context, accessToken string) error {
-	return nil
+func (u *UseCase) VerifyAccessToken(ctx context.Context, accessToken string) (*models.User, error) {
+	jwToken := utils.NewJwt(u.key, nil)
+
+	jwTokenModel, err := jwToken.ParseToken(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	stdClaim := jwTokenModel.Claims.(jwt.MapClaims)
+	userId := stdClaim["iss"].(string)
+
+	isExisted, err := u.jwtRepo.HasAccessTokenById(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if !isExisted {
+		return nil, auth.ErrUnauthorized
+	}
+
+	return u.userRepo.GetById(ctx, userId)
 }

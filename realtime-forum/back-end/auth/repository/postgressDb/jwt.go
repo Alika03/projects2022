@@ -36,3 +36,16 @@ func (j *JwtRepository) AddRefreshToken(ctx context.Context, _ *sql.Tx, model *m
 
 	return nil
 }
+
+func (j *JwtRepository) HasAccessTokenById(ctx context.Context, accessId string) (bool, error) {
+	var has bool
+
+	query := "SELECT exists(SELECT * FROM access_token WHERE id == $1);"
+
+	row := j.db.QueryRowContext(ctx, query, accessId)
+	if err := row.Scan(&has); err != nil {
+		return false, err
+	}
+
+	return has, nil
+}
