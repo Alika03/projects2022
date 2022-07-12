@@ -2,10 +2,14 @@ package server
 
 import (
 	"back-end/auth"
-	"back-end/auth/delivery/http/registerRoute"
+	registerAuthRoute "back-end/auth/delivery/http/registerRoute"
 	"back-end/auth/repository/postgressDb"
-	"back-end/auth/usecase"
+	authUC "back-end/auth/usecase"
 	"back-end/config"
+	"back-end/post"
+	registerPostRoute "back-end/post/delivery/registerRoute"
+	"back-end/post/repository/postgresDb"
+	postUC "back-end/post/usecase"
 	"database/sql"
 	"fmt"
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -18,6 +22,7 @@ type App struct {
 	httpServer *http.Server
 
 	authUC auth.UseCase
+	postUC post.UseCase
 }
 
 func NewApp() *App {
@@ -26,18 +31,16 @@ func NewApp() *App {
 
 	return &App{
 		httpServer: nil,
-		authUC: usecase.NewAuthUseCase(
-			postgressDb.NewUserRepository(db),
-			postgressDb.NewJwtRepository(db),
-			privateKey,
-		),
+		authUC:     authUC.NewAuthUseCase(postgressDb.NewUserRepository(db), postgressDb.NewJwtRepository(db), privateKey),
+		postUC:     postUC.NewPostUseCase(postgresDb.NewPostRepository(db)),
 	}
 }
 
 func (a *App) Run() error {
 	mux := http.NewServeMux()
 
-	registerRoute.RegisterAuthHTTPRoute(mux, a.authUC)
+	registerAuthRoute.RegisterAuthHTTPRoute(mux, a.authUC)
+	registerPostRoute.RegisterPostHTTPRoute(mux, a.postUC)
 
 	a.httpServer = &http.Server{
 		Addr:           ":8080",
