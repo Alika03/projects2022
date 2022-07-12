@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"back-end/auth"
-	"back-end/auth/delivery/http/httpHelper"
+	"back-end/pkg/httpHelper"
 	"context"
 	"net/http"
 	"time"

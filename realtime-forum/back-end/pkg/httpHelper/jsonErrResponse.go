@@ -2,7 +2,6 @@ package httpHelper
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
@@ -17,7 +16,6 @@ func ErrJsonResponse(response http.ResponseWriter, msg string, code int) error {
 		Code: code,
 	}
 
-	log.Println("errr 123")
 	dataBytes, err := json.Marshal(errModel)
 	if err != nil {
 		return err

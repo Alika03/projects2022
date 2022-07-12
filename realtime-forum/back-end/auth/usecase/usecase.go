@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"database/sql"
+	"errors"
 	"github.com/dgrijalva/jwt-go/v4"
 	"strconv"
 	"time"
@@ -126,6 +127,7 @@ func (u *UseCase) VerifyAccessToken(ctx context.Context, accessToken string) (*m
 
 	stdClaim := jwTokenModel.Claims.(jwt.MapClaims)
 	userId := stdClaim["iss"].(string)
+	expiredAt := stdClaim["exp"].(*time.Time)
 
 	isExisted, err := u.jwtRepo.HasAccessTokenById(ctx, userId)
 	if err != nil {
@@ -134,6 +136,10 @@ func (u *UseCase) VerifyAccessToken(ctx context.Context, accessToken string) (*m
 
 	if !isExisted {
 		return nil, auth.ErrUnauthorized
+	}
+
+	if expiredAt.Unix() < time.Now().Unix() {
+		return nil, errors.New("time is expired")
 	}
 
 	return u.userRepo.GetById(ctx, userId)

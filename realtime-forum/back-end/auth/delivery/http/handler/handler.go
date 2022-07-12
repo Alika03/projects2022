@@ -2,7 +2,7 @@ package handler
 
 import (
 	"back-end/auth"
-	"back-end/auth/delivery/http/httpHelper"
+	httpHelper2 "back-end/pkg/httpHelper"
 	"context"
 	"net/http"
 	"time"
@@ -22,19 +22,19 @@ func (h *Handler) SignUp(response http.ResponseWriter, request *http.Request) {
 
 	// Request
 	dto := &AuthDTO{}
-	if err := httpHelper.BindJson(request, dto); err != nil {
-		_ = httpHelper.ErrJsonResponse(response, err.Error(), http.StatusInternalServerError)
+	if err := httpHelper2.BindJson(request, dto); err != nil {
+		_ = httpHelper2.ErrJsonResponse(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Handle request
 	if err := h.uc.SignUp(ctx, dto.Username, dto.Password); err != nil {
-		_ = httpHelper.ErrJsonResponse(response, err.Error(), http.StatusInternalServerError)
+		_ = httpHelper2.ErrJsonResponse(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Response
-	httpHelper.JsonCodeResponse(response, http.StatusOK)
+	httpHelper2.JsonCodeResponse(response, http.StatusOK)
 }
 
 func (h *Handler) SignIn(response http.ResponseWriter, request *http.Request) {
@@ -43,15 +43,15 @@ func (h *Handler) SignIn(response http.ResponseWriter, request *http.Request) {
 
 	// Request
 	dto := &AuthDTO{}
-	if err := httpHelper.BindJson(request, dto); err != nil {
-		_ = httpHelper.ErrJsonResponse(response, err.Error(), http.StatusInternalServerError)
+	if err := httpHelper2.BindJson(request, dto); err != nil {
+		_ = httpHelper2.ErrJsonResponse(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Handle request
 	tokens, err := h.uc.SignIn(ctx, dto.Username, dto.Password)
 	if err != nil {
-		_ = httpHelper.ErrJsonResponse(response, err.Error(), http.StatusInternalServerError)
+		_ = httpHelper2.ErrJsonResponse(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -59,5 +59,5 @@ func (h *Handler) SignIn(response http.ResponseWriter, request *http.Request) {
 	response.Header().Add(tokens.TokenType+"-1", tokens.AccessToken)
 	response.Header().Add(tokens.TokenType+"-2", tokens.RefreshToken)
 
-	httpHelper.JsonCodeResponse(response, http.StatusOK)
+	httpHelper2.JsonCodeResponse(response, http.StatusOK)
 }
