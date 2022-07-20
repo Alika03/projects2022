@@ -74,12 +74,12 @@ func (r *PostRepository) GetById(ctx context.Context, id string) (*models.Post, 
 	}
 }
 
-func (r *PostRepository) CountAll(ctx context.Context, id string) (int, error) {
+func (r *PostRepository) CountAll(ctx context.Context) (int, error) {
 	query := `SELECT count(id) FROM post;`
 
 	var count int
 
-	err := r.db.QueryRowContext(ctx, query, id).Scan(count)
+	err := r.db.QueryRowContext(ctx, query).Scan(count)
 	switch err {
 	case sql.ErrNoRows, nil:
 		return count, nil
