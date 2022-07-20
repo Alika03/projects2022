@@ -8,3 +8,10 @@ type Post struct {
 	Content   string
 	CreatedAt time.Time
 }
+
+type PostPagination struct {
+	TotalItems int
+	PagesCount int
+	PerPage    int
+	Posts      []*Post
+}
