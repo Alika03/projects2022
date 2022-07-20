@@ -2,8 +2,8 @@ package usecase
 
 import (
 	"back-end/models"
+	"back-end/pkg"
 	"back-end/post"
-	"back-end/utils"
 	"context"
 	"time"
 )
@@ -17,7 +17,7 @@ func NewPostUseCase(repo post.PostRepository) *UseCase {
 }
 
 func (u *UseCase) CreatePost(ctx context.Context, model *models.Post) error {
-	model.Id = utils.GenerateUuid().String()
+	model.Id = pkg.GenerateUuid().String()
 	model.CreatedAt = time.Now()
 
 	return u.repo.AddPost(ctx, model)

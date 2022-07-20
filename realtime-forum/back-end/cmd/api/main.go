@@ -2,13 +2,13 @@ package main
 
 import (
 	"back-end/config"
+	"back-end/pkg"
 	"back-end/server"
-	"back-end/utils"
 	"log"
 )
 
 func init() {
-	if err := utils.CreateKey("privateKey.pem", "publicKey.pem"); err != nil {
+	if err := pkg.CreateKey("privateKey.pem", "publicKey.pem"); err != nil {
 		panic(err)
 	}
 	config.GetConfig()

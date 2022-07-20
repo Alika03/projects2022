@@ -4,7 +4,7 @@ import (
 	"back-end/auth"
 	"back-end/config"
 	"back-end/models"
-	"back-end/utils"
+	"back-end/pkg"
 	"context"
 	"crypto/rsa"
 	"database/sql"
@@ -32,7 +32,7 @@ func NewAuthUseCase(userRepo auth.UserRepository, jwtRepo auth.JwtRepository, ke
 
 func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
 	var model = &models.User{
-		Id:       utils.GenerateUuid().String(),
+		Id:       pkg.GenerateUuid().String(),
 		Username: username,
 		Password: password,
 	}
@@ -43,7 +43,7 @@ func (u *UseCase) SignUp(ctx context.Context, username, password string) error {
 	saltLength, _ := strconv.Atoi(config.GetConfig().HashParams.SaltLength)
 	keyLength, _ := strconv.Atoi(config.GetConfig().HashParams.KeyLength)
 
-	hashModel := utils.NewHashPassword(uint32(memory), uint32(iterations), uint8(parallelism), uint32(saltLength), uint32(keyLength))
+	hashModel := pkg.NewHashPassword(uint32(memory), uint32(iterations), uint8(parallelism), uint32(saltLength), uint32(keyLength))
 
 	hashPassword, err := hashModel.GenerateHashPassword(model.Password)
 	if err != nil {
@@ -61,7 +61,7 @@ func (u *UseCase) SignIn(ctx context.Context, username, password string) (*model
 		return nil, err
 	}
 
-	isMatched, err := utils.ComparePasswordHash(password, userModel.HashPassword)
+	isMatched, err := pkg.ComparePasswordHash(password, userModel.HashPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (u *UseCase) SignIn(ctx context.Context, username, password string) (*model
 	}
 
 	accessTokenModel := &models.AccessToken{
-		Id:        utils.GenerateUuid().String(),
+		Id:        pkg.GenerateUuid().String(),
 		UserId:    userModel.Id,
 		ExpiredAt: time.Now().Add(time.Minute),
 	}
@@ -80,13 +80,13 @@ func (u *UseCase) SignIn(ctx context.Context, username, password string) (*model
 		Issuer:    accessTokenModel.UserId,
 		ID:        accessTokenModel.Id,
 	}
-	accessToken, err := utils.NewJwt(u.key, accessClaims).CreateToken()
+	accessToken, err := pkg.NewJwt(u.key, accessClaims).CreateToken()
 	if err != nil {
 		return nil, err
 	}
 
 	refreshTokenModel := &models.RefreshToken{
-		Id:            utils.GenerateUuid().String(),
+		Id:            pkg.GenerateUuid().String(),
 		AccessTokenId: accessTokenModel.Id,
 		ExpiredAt:     time.Now().Add(time.Minute),
 	}
@@ -97,7 +97,7 @@ func (u *UseCase) SignIn(ctx context.Context, username, password string) (*model
 		ID:        refreshTokenModel.Id,
 	}
 
-	refreshToken, err := utils.NewJwt(u.key, refreshClaims).CreateToken()
+	refreshToken, err := pkg.NewJwt(u.key, refreshClaims).CreateToken()
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (u *UseCase) SignIn(ctx context.Context, username, password string) (*model
 }
 
 func (u *UseCase) VerifyAccessToken(ctx context.Context, accessToken string) (*models.User, error) {
-	jwToken := utils.NewJwt(u.key, nil)
+	jwToken := pkg.NewJwt(u.key, nil)
 
 	jwTokenModel, err := jwToken.ParseToken(accessToken)
 	if err != nil {
